@@ -15,6 +15,13 @@ data "http" "cloudflare_ip6_addrs" {
   url = "https://www.cloudflare.com/ips-v6"
 }
 
+locals {
+  all_addresses = concat(
+    split("\n", trimspace(data.http.cloudflare_ip4_addrs.response_body)),
+    split("\n", trimspace(data.http.cloudflare_ip6_addrs.response_body))
+  )
+}
+
 resource "digitalocean_firewall" "inbound_cloudflare" {
   name = var.name
 
@@ -24,18 +31,12 @@ resource "digitalocean_firewall" "inbound_cloudflare" {
   inbound_rule {
       protocol   = "tcp"
       port_range = "80"
-      source_addresses = concat(
-        split("\n", trimspace(data.http.cloudflare_ip4_addrs.body)),
-        split("\n", trimspace(data.http.cloudflare_ip6_addrs.body))
-      )
+      source_addresses = local.all_addresses
   }
   
   inbound_rule {
       protocol   = "tcp"
       port_range = "443"
-      source_addresses = concat(
-        split("\n", trimspace(data.http.cloudflare_ip4_addrs.body)),
-        split("\n", trimspace(data.http.cloudflare_ip6_addrs.body))
-      )
+      source_addresses = local.all_addresses
   }
 }
